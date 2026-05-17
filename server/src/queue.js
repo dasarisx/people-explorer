@@ -7,6 +7,11 @@ function createJobQueue(io) {
   const worker = new Worker(path.join(__dirname, "worker.js"));
 
   worker.on("message", (result) => {
+    if(result.clientId) {
+      io.to(result.clientId).emit("job:result",result);
+      return;
+    }
+    
     io.emit("job:result", result);
   });
 
@@ -20,10 +25,11 @@ function createJobQueue(io) {
     }
   }
 
-  function enqueue(label) {
+  function enqueue({label, clientId}) {
     const id = nextId++;
     const job = {
       id: `job-${id}`,
+      clientId,
       label: label || `Request ${id}`,
       status: "pending",
       queuedAt: new Date().toISOString(),

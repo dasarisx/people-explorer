@@ -5,10 +5,11 @@ import { useStreamText } from "./useStreamText";
 function StreamReaderComponent() {
   const stream = useStreamText();
   const isStreaming = stream.status === "streaming";
-  const action = (
-    <button onClick={stream.startStream} disabled={isStreaming}>
-      {isStreaming ? "Streaming..." : "Start stream"}
-    </button>
+  
+  const action = isStreaming ? (
+    <button onClick={stream.stopStream}>Stop stream</button>
+  ) : (
+    <button onClick={stream.startStream}>Start stream</button>
   );
 
   return (
