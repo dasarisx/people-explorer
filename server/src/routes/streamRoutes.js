@@ -7,22 +7,56 @@ function createStreamRouter() {
   router.get("/", (req, res) => {
     const text = createLongText();
     let index = 0;
+    let interval;
+    let closed = false;
+    let waitingForDrain = false;
 
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache");
 
-    const interval = setInterval(() => {
-      if (index >= text.length) {
-        clearInterval(interval);
+    function stop() {
+      closed = true;
+      clearInterval(interval);
+    }
+
+    function finish() {
+      stop();
+
+      if (!res.writableEnded) {
         res.end();
+      }
+    }
+
+    function writeNextChunk() {
+      if (closed || waitingForDrain) return;
+
+      if (index >= text.length) {
+        finish();
         return;
       }
 
-      res.write(text.slice(index, index + 48));
+      const chunk = text.slice(index, index + 48);
       index += 48;
-    }, 45);
 
-    req.on("close", () => clearInterval(interval));
+      const canContinue = res.write(chunk);
+
+      if (!canContinue) {
+        waitingForDrain = true;
+        clearInterval(interval);
+
+        res.once("drain", () => {
+          waitingForDrain = false;
+
+          if (!closed) {
+            interval = setInterval(writeNextChunk, 45);
+          }
+        });
+      }
+    }
+
+    interval = setInterval(writeNextChunk, 45);
+
+    req.on("close", stop);
   });
 
   return router;
