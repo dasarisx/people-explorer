@@ -1,4 +1,3 @@
-# Presight Frontend Exercise
 
 #### Create a react application and nodes web server for the following use cases
 
